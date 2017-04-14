@@ -14,4 +14,4 @@
  * limitations under the License.
  */
 
-#include "lib/txt/src/paragraph_style.h"
+#include "lib/txt/src/text_style.h"

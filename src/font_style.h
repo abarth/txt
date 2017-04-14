@@ -14,4 +14,16 @@
  * limitations under the License.
  */
 
-#include "lib/txt/src/paragraph_style.h"
+#ifndef LIB_TXT_SRC_FONT_STYLE_H_
+#define LIB_TXT_SRC_FONT_STYLE_H_
+
+namespace txt {
+
+enum class FontStyle {
+  italic,
+  normal,
+};
+
+}  // namespace txt
+
+#endif  // LIB_TXT_SRC_FONT_STYLE_H_

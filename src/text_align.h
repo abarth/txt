@@ -14,4 +14,18 @@
  * limitations under the License.
  */
 
-#include "lib/txt/src/paragraph_style.h"
+#ifndef LIB_TXT_SRC_TEXT_ALIGN_H_
+#define LIB_TXT_SRC_TEXT_ALIGN_H_
+
+namespace txt {
+
+enum class TextAlign {
+  left,
+  right,
+  center,
+  // justify,
+};
+
+}  // namespace txt
+
+#endif  // LIB_TXT_SRC_TEXT_ALIGN_H_

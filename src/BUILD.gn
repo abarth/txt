@@ -16,6 +16,8 @@ static_library("src") {
   sources = [
     "font_skia.cc",
     "font_skia.h",
+    "font_style.h",
+    "font_weight.h",
     "paragraph_builder.cc",
     "paragraph_builder.h",
     "paragraph_constraints.cc",
@@ -24,6 +26,9 @@ static_library("src") {
     "paragraph_style.h",
     "paragraph.cc",
     "paragraph.h",
+    "text_align.h",
+    "text_style.cc",
+    "text_style.h",
   ]
 
   deps = [

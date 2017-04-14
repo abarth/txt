@@ -17,11 +17,24 @@
 #ifndef LIB_TXT_SRC_PARAGRAPH_STYLE_H_
 #define LIB_TXT_SRC_PARAGRAPH_STYLE_H_
 
+#include <string>
+
+#include "lib/txt/src/font_style.h"
+#include "lib/txt/src/font_weight.h"
+#include "lib/txt/src/text_align.h"
+
 namespace txt {
 
 class ParagraphStyle {
  public:
-  ParagraphStyle();
+  TextAlign textAlign = TextAlign::left;
+  FontWeight fontWeight = FontWeight::w400;
+  FontStyle fontStyle = FontStyle::normal;
+  int maxLines = 0;
+  std::string fontFamily;
+  double fontSize = 14.0;
+  double lineHeight = 1.0;
+  std::string ellipsis;
 };
 
 }  // namespace txt

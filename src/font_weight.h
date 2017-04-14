@@ -14,4 +14,23 @@
  * limitations under the License.
  */
 
-#include "lib/txt/src/paragraph_style.h"
+#ifndef LIB_TXT_SRC_FONT_WEIGHT_H_
+#define LIB_TXT_SRC_FONT_WEIGHT_H_
+
+namespace txt {
+
+enum class FontWeight {
+  w100,
+  w200,
+  w300,
+  w400,
+  w500,
+  w600,
+  w700,
+  w800,
+  w900,
+};
+
+}  // namespace txt
+
+#endif  // LIB_TXT_SRC_FONT_WEIGHT_H_

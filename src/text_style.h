@@ -14,34 +14,33 @@
  * limitations under the License.
  */
 
-#ifndef LIB_TXT_SRC_PARAGRAPH_BUILDER_H_
-#define LIB_TXT_SRC_PARAGRAPH_BUILDER_H_
+#ifndef LIB_TXT_SRC_TEXT_STYLE_H_
+#define LIB_TXT_SRC_TEXT_STYLE_H_
 
-#include <memory>
 #include <string>
 
-#include "lib/txt/src/paragraph.h"
-#include "lib/txt/src/paragraph_style.h"
-#include "lib/txt/src/text_style.h"
+#include "lib/txt/src/font_style.h"
+#include "lib/txt/src/font_weight.h"
+#include "third_party/skia/include/core/SkColor.h"
 
 namespace txt {
 
-class ParagraphBuilder {
+class TextStyle {
  public:
-  explicit ParagraphBuilder(ParagraphStyle style);
-  ~ParagraphBuilder();
-
-  void PushStyle(const TextStyle& style);
-  void Pop();
-
-  void AddText(const std::u16string& text);
-
-  std::unique_ptr<Paragraph> Build();
-
- private:
-  std::vector<uint16_t> text_;
+  SkColor color = SK_ColorWHITE;
+  // TextDecoration decoration,
+  // SkColor decorationColor;
+  // TextDecorationStyle decorationStyle
+  FontWeight fontWeight = FontWeight::w400;
+  FontStyle fontStyle = FontStyle::normal;
+  // TextBaseline textBaseline;
+  std::string fontFamily;
+  double fontSize = 14.0;
+  double letterSpacing = 0.0;
+  double wordSpacing = 0.0;
+  double height = 1.0;
 };
 
 }  // namespace txt
 
-#endif  // LIB_TXT_SRC_PARAGRAPH_BUILDER_H_
+#endif  // LIB_TXT_SRC_TEXT_STYLE_H_
