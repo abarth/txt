@@ -14,37 +14,41 @@
  * limitations under the License.
  */
 
-#ifndef LIB_TXT_SRC_PARAGRAPH_BUILDER_H_
-#define LIB_TXT_SRC_PARAGRAPH_BUILDER_H_
+#ifndef LIB_TXT_SRC_STYLED_RUNS_H_
+#define LIB_TXT_SRC_STYLED_RUNS_H_
 
-#include <memory>
-#include <string>
+#include <vector>
 
-#include "lib/txt/src/paragraph.h"
-#include "lib/txt/src/paragraph_style.h"
 #include "lib/txt/src/text_style.h"
-#include "lib/txt/src/styled_runs.h"
 
 namespace txt {
 
-class ParagraphBuilder {
+class StyledRuns {
  public:
-  explicit ParagraphBuilder(ParagraphStyle style);
-  ~ParagraphBuilder();
+  StyledRuns();
+  ~StyledRuns();
 
-  void PushStyle(const TextStyle& style);
-  void Pop();
+  StyledRuns(const StyledRuns& other) = delete;
+  StyledRuns(StyledRuns&& other);
 
-  void AddText(const std::u16string& text);
+  const StyledRuns& operator=(StyledRuns&& other);
+  void swap(StyledRuns& other);
 
-  std::unique_ptr<Paragraph> Build();
+  size_t AddStyle(const TextStyle& style);
+  void StartRun(size_t style_index, size_t start);
+  void EndRunIfNeeded(size_t end);
 
  private:
-  std::vector<uint16_t> text_;
-  std::vector<size_t> style_stack_;
-  StyledRuns runs_;
+  struct Run {
+    size_t style_index = 0;
+    size_t start = 0;
+    size_t end = 0;
+  };
+
+  std::vector<TextStyle> styles_;
+  std::vector<Run> runs_;
 };
 
 }  // namespace txt
 
-#endif  // LIB_TXT_SRC_PARAGRAPH_BUILDER_H_
+#endif  // LIB_TXT_SRC_STYLED_RUNS_H_

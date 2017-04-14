@@ -26,6 +26,8 @@ static_library("src") {
     "paragraph_style.h",
     "paragraph.cc",
     "paragraph.h",
+    "styled_runs.h",
+    "styled_runs.cc",
     "text_align.h",
     "text_style.cc",
     "text_style.h",
