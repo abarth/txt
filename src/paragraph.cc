@@ -68,6 +68,21 @@ android::FontCollection* GetFontCollection() {
   return g_font_collection;
 }
 
+const sk_sp<SkTypeface>& GetTypefaceForGlyph(const android::Layout& layout, size_t index) {
+  FontSkia* font = static_cast<FontSkia*>(layout.getFont(index));
+  return font->GetSkTypeface();
+}
+
+size_t GetRunLength(const android::Layout& layout, size_t start) {
+  const size_t glyph_count = layout.nGlyphs();
+  const sk_sp<SkTypeface>& typeface = GetTypefaceForGlyph(layout, start);
+  for (size_t end = start + 1; end < glyph_count; ++end) {
+    if (GetTypefaceForGlyph(layout, end).get() != typeface.get())
+      return end - start;
+  }
+  return glyph_count - start;
+}
+
 } // namespace
 
 Paragraph::Paragraph() = default;
@@ -76,32 +91,71 @@ Paragraph::~Paragraph() = default;
 
 void Paragraph::Layout(const ParagraphConstraints& constraints) {
   android::LineBreaker breaker;
+  breaker.setLocale(icu::Locale(), nullptr);
   breaker.resize(text_.size());
-  memcpy(breaker.buffer(), text_.data(), text_.size() / sizeof(text_[0]));
+  memcpy(breaker.buffer(), text_.data(), text_.size() * sizeof(text_[0]));
   breaker.setText();
   breaker.setLineWidths(0.0f, 0, constraints.width());
 
   android::FontCollection* collection = GetFontCollection();
 
   android::FontStyle fontStyle;
-  android::MinikinPaint paint;
-  paint.size = 32;
+  android::MinikinPaint minikinPaint;
+  minikinPaint.size = 32.0f;
 
-  breaker.addStyleRun(&paint, collection, fontStyle, 0, text_.size(), false);
-  breaker.computeBreaks();
+  breaker.addStyleRun(&minikinPaint, collection, fontStyle, 0, text_.size(), false);
+
+  size_t count = breaker.computeBreaks();
+  const int* breaks = breaker.getBreaks();
+
+  SkTextBlobBuilder builder;
+
+  SkPaint paint;
+  paint.setAntiAlias(true);
+  paint.setTextSize(32.0f);
+  paint.setTextEncoding(SkPaint::kGlyphID_TextEncoding);
+
+  android::Layout layout;
+  layout.setFontCollection(collection);
+  SkScalar y = 0.0f;
+  size_t line_start = 0;
+  for (size_t i = 0; i < count; ++i) {
+    int bidiFlags = 0;
+    const size_t line_end = breaks[i];
+    layout.doLayout(text_.data(), line_start, line_end - line_start,
+                    text_.size(), bidiFlags, fontStyle, minikinPaint);
+
+    const size_t glyph_count = layout.nGlyphs();
+    size_t run_start = 0;
+    while (run_start < glyph_count) {
+      const size_t run_length = GetRunLength(layout, run_start);
+      // TODO(abarth): Precompute when we can use allocRunPosH.
+      paint.setTypeface(GetTypefaceForGlyph(layout, run_start));
+      auto buffer = builder.allocRunPos(paint, run_length);
+
+      for (size_t run_index = 0; run_index < run_length; ++run_index) {
+        const size_t glyph_index = run_start + run_index;
+        buffer.glyphs[run_index] = layout.getGlyphId(glyph_index);
+        const size_t pos_index = 2 * run_index;
+        buffer.pos[pos_index] = layout.getX(glyph_index);
+        buffer.pos[pos_index + 1] = layout.getY(glyph_index) + y;
+      }
+
+      run_start += run_length;
+    }
+
+    layout.reset();
+    line_start = line_end;
+    y += 32.0f;
+  }
+
+  blob_ = builder.make();
 }
 
 void Paragraph::Paint(SkCanvas* canvas, double x, double y) {
   SkPaint paint;
-  // fontData->platformData().setupPaint(&paint);
-  paint.setTextEncoding(SkPaint::kGlyphID_TextEncoding);
-
-
-  SkTextBlobBuilder builder;
-
-  android::Layout layout;
-
-  // auto buffer = builder.allocRunPosH();
+  paint.setARGB(255, 0, 0, 128);
+  canvas->drawTextBlob(blob_.get(), x, y, paint);
 }
 
 }  // namespace txt

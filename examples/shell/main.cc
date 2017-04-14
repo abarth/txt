@@ -14,141 +14,50 @@
  * limitations under the License.
  */
 
-// This is a test program that uses Minikin to layout and draw some text.
-// At the moment, it just draws a string into /data/local/tmp/foo.pgm.
-
-#include <stdio.h>
-#include <vector>
-#include <fstream>
-
 #include <unicode/unistr.h>
-#include <unicode/utf16.h>
-
-#include <minikin/MinikinFontFreeType.h>
-#include <minikin/Layout.h>
 
 #include <SkCanvas.h>
 #include <SkGraphics.h>
 #include <SkImageEncoder.h>
-#include <SkTypeface.h>
-#include <SkPaint.h>
 
-#include "lib/txt/src/font_skia.h"
 #include "flutter/fml/icu_util.h"
-
-using std::vector;
-using namespace android;
+#include "lib/txt/src/paragraph_builder.h"
 
 namespace txt {
 
-FT_Library library;  // TODO: this should not be a global
+int runTest() {
+  const char* utf8_text =
+      "fine world that we live in is called Earth. It's pretty nice, as far as "
+      "I can tell. Rock, rock on. "
+      "\xe0\xa4\xa8\xe0\xa4\xae\xe0\xa4\xb8\xe0\xa5\x8d\xe0\xa4\xa4\xe0\xa5"
+      "\x87";
+  icu::UnicodeString icu_text = icu::UnicodeString::fromUTF8(utf8_text);
+  std::u16string u16_text(icu_text.getBuffer(), icu_text.getBuffer() + icu_text.length());
 
-FontCollection *makeFontCollection() {
-    vector<FontFamily *>typefaces;
-    const char *fns[] = {
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-Italic.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-BoldItalic.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-Light.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-Thin.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-Bold.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-ThinItalic.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-LightItalic.ttf",
-    };
+  ParagraphStyle paragraph_style;
+  ParagraphBuilder builder(paragraph_style);
+  builder.AddText(u16_text);
+  auto paragraph = builder.Build();
 
-    FontFamily *family = new FontFamily();
-    for (size_t i = 0; i < sizeof(fns)/sizeof(fns[0]); i++) {
-        const char *fn = fns[i];
-        MinikinFont *font = new FontSkia(SkTypeface::MakeFromFile(fn));
-        family->addFont(font);
-    }
-    typefaces.push_back(family);
+  int width = 800;
+  int height = 600;
+  paragraph->Layout(ParagraphConstraints(width));
 
-#if 1
-    family = new FontFamily();
-    const char *fn = "/Users/abarth/git/flutter/engine/src/DroidSansDevanagari-Regular.ttf";
-    MinikinFont *font = new FontSkia(SkTypeface::MakeFromFile(fn));
-    family->addFont(font);
-    typefaces.push_back(family);
-#endif
+  SkAutoGraphics ag;
+  SkBitmap bitmap;
+  bitmap.allocN32Pixels(width, height);
+  SkCanvas canvas(bitmap);
+  paragraph->Paint(&canvas, 10.0, 300.0);
 
-    return new FontCollection(typefaces);
-}
-
-// Maybe move to MinikinSkia (esp. instead of opening GetSkTypeface publicly)?
-
-void drawToSkia(SkCanvas *canvas, SkPaint *paint, Layout *layout, float x, float y) {
-    size_t nGlyphs = layout->nGlyphs();
-    uint16_t *glyphs = new uint16_t[nGlyphs];
-    SkPoint *pos = new SkPoint[nGlyphs];
-    sk_sp<SkTypeface> lastFace = NULL;
-    sk_sp<SkTypeface> skFace = NULL;
-    size_t start = 0;
-
-    paint->setTextEncoding(SkPaint::kGlyphID_TextEncoding);
-    for (size_t i = 0; i < nGlyphs; i++) {
-        FontSkia *mfs = static_cast<FontSkia *>(layout->getFont(i));
-        skFace = mfs->GetSkTypeface();
-        glyphs[i] = layout->getGlyphId(i);
-        pos[i].fX = x + layout->getX(i);
-        pos[i].fY = y + layout->getY(i);
-        if (i > 0 && skFace.get() != lastFace.get()) {
-            paint->setTypeface(lastFace);
-            canvas->drawPosText(glyphs + start, (i - start) << 1, pos + start, *paint);
-            start = i;
-        }
-        lastFace = skFace;
-    }
-    paint->setTypeface(skFace);
-    canvas->drawPosText(glyphs + start, (nGlyphs - start) << 1, pos + start, *paint);
-    delete[] glyphs;
-    delete[] pos;
-}
-
-int runMinikinTest() {
-    FT_Error error = FT_Init_FreeType(&library);
-    if (error) {
-        return -1;
-    }
-    Layout::init();
-
-    FontCollection *collection = makeFontCollection();
-    Layout layout;
-    layout.setFontCollection(collection);
-    const char *text = "fine world \xe0\xa4\xa8\xe0\xa4\xae\xe0\xa4\xb8\xe0\xa5\x8d\xe0\xa4\xa4\xe0\xa5\x87";
-    int bidiFlags = 0;
-    FontStyle fontStyle;
-    MinikinPaint minikinPaint;
-    minikinPaint.size = 32;
-    icu::UnicodeString icuText = icu::UnicodeString::fromUTF8(text);
-    layout.doLayout(icuText.getBuffer(), 0, icuText.length(), icuText.length(), bidiFlags, fontStyle, minikinPaint);
-    layout.dump();
-
-    SkAutoGraphics ag;
-
-    int width = 800;
-    int height = 600;
-    SkBitmap bitmap;
-    bitmap.allocN32Pixels(width, height);
-    SkCanvas canvas(bitmap);
-    SkPaint paint;
-    paint.setARGB(255, 0, 0, 128);
-    paint.setStyle(SkPaint::kStroke_Style);
-    paint.setStrokeWidth(2);
-    paint.setTextSize(32);
-    paint.setAntiAlias(true);
-    canvas.drawLine(10, 300, 10 + layout.getAdvance(), 300, paint);
-    paint.setStyle(SkPaint::kFill_Style);
-    drawToSkia(&canvas, &paint, &layout, 10, 300);
-
-    SkFILEWStream file("foo.png");
-    SkEncodeImage(&file, bitmap, SkEncodedImageFormat::kPNG, 100);
-    return 0;
+  SkFILEWStream file("foo.png");
+  SkEncodeImage(&file, bitmap, SkEncodedImageFormat::kPNG, 100);
+  return 0;
 }
 
 }  // namespace txt
 
 int main(int argc, const char** argv) {
-    fml::icu::InitializeICU("/Users/abarth/git/flutter/engine/src/out/host_debug_unopt/icudtl.dat");
-    return txt::runMinikinTest();
+  fml::icu::InitializeICU(
+      "/Users/abarth/git/flutter/engine/src/out/host_debug_unopt/icudtl.dat");
+  return txt::runTest();
 }

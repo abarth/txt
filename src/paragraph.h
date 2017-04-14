@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "lib/txt/src/paragraph_constraints.h"
+#include "third_party/skia/include/core/SkTextBlob.h"
 
 class SkCanvas;
 
@@ -37,6 +38,7 @@ class Paragraph {
   friend class ParagraphBuilder;
 
   std::vector<uint16_t> text_;
+  sk_sp<SkTextBlob> blob_;
 };
 
 }  // namespace txt
