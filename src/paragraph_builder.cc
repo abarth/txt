@@ -49,8 +49,7 @@ void ParagraphBuilder::AddText(const std::u16string& text) {
 std::unique_ptr<Paragraph> ParagraphBuilder::Build() {
   runs_.EndRunIfNeeded(text_.size());
   std::unique_ptr<Paragraph> paragraph = std::make_unique<Paragraph>();
-  paragraph->text_.swap(text_);
-  paragraph->runs_.swap(runs_);
+  paragraph->SetText(std::move(text_), std::move(runs_));
   return paragraph;
 }
 

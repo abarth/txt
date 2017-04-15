@@ -45,13 +45,13 @@ size_t StyledRuns::AddStyle(const TextStyle& style) {
 }
 
 void StyledRuns::StartRun(size_t style_index, size_t start) {
-  runs_.push_back(Run{style_index, start, start});
+  runs_.push_back(IndexedRun{style_index, start, start});
 }
 
 void StyledRuns::EndRunIfNeeded(size_t end) {
   if (runs_.empty())
     return;
-  Run& run = runs_.back();
+  IndexedRun& run = runs_.back();
   if (run.start == end) {
     // The run is empty. We can skip it.
     runs_.pop_back();
@@ -59,5 +59,11 @@ void StyledRuns::EndRunIfNeeded(size_t end) {
     run.end = end;
   }
 }
+
+StyledRuns::Run StyledRuns::GetRun(size_t index) const {
+  const IndexedRun& run = runs_[index];
+  return Run{styles_[run.style_index], run.start, run.end};
+}
+
 
 }  // namespace txt

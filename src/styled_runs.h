@@ -38,15 +38,24 @@ class StyledRuns {
   void StartRun(size_t style_index, size_t start);
   void EndRunIfNeeded(size_t end);
 
- private:
   struct Run {
+    const TextStyle& style;
+    size_t start;
+    size_t end;
+  };
+
+  size_t size() const { return runs_.size(); }
+  Run GetRun(size_t index) const;
+
+ private:
+  struct IndexedRun {
     size_t style_index = 0;
     size_t start = 0;
     size_t end = 0;
   };
 
   std::vector<TextStyle> styles_;
-  std::vector<Run> runs_;
+  std::vector<IndexedRun> runs_;
 };
 
 }  // namespace txt

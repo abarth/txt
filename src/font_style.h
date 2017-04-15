@@ -20,8 +20,8 @@
 namespace txt {
 
 enum class FontStyle {
-  italic,
   normal,
+  italic,
 };
 
 }  // namespace txt

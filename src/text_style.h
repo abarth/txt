@@ -29,15 +29,15 @@ class TextStyle {
  public:
   SkColor color = SK_ColorWHITE;
   // TextDecoration decoration,
-  // SkColor decorationColor;
-  // TextDecorationStyle decorationStyle
-  FontWeight fontWeight = FontWeight::w400;
-  FontStyle fontStyle = FontStyle::normal;
-  // TextBaseline textBaseline;
-  std::string fontFamily;
-  double fontSize = 14.0;
-  double letterSpacing = 0.0;
-  double wordSpacing = 0.0;
+  // SkColor decoration_color;
+  // TextDecorationStyle decoration_style
+  FontWeight font_weight = FontWeight::w400;
+  FontStyle font_style = FontStyle::normal;
+  // TextBaseline text_baseline;
+  std::string font_family;
+  double font_size = 14.0;
+  double letter_spacing = 0.0;
+  double word_spacing = 0.0;
   double height = 1.0;
 };
 

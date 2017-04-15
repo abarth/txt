@@ -18,6 +18,8 @@ static_library("src") {
     "font_skia.h",
     "font_style.h",
     "font_weight.h",
+    "paint_record.cc",
+    "paint_record.h",
     "paragraph_builder.cc",
     "paragraph_builder.h",
     "paragraph_constraints.cc",

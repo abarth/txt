@@ -83,30 +83,80 @@ size_t GetRunLength(const android::Layout& layout, size_t start) {
   return glyph_count - start;
 }
 
+int GetWeight(const TextStyle& style) {
+  switch (style.font_weight) {
+    case FontWeight::w100:
+      return 1;
+    case FontWeight::w200:
+      return 2;
+    case FontWeight::w300:
+      return 3;
+    case FontWeight::w400:
+      return 4;
+    case FontWeight::w500:
+      return 5;
+    case FontWeight::w600:
+      return 6;
+    case FontWeight::w700:
+      return 7;
+    case FontWeight::w800:
+      return 8;
+    case FontWeight::w900:
+      return 9;
+  }
+}
+
+bool GetItalic(const TextStyle& style) {
+  switch (style.font_style) {
+    case FontStyle::normal:
+      return false;
+    case FontStyle::italic:
+      return true;
+  }
+}
+
+void GetFontAndPaint(const TextStyle& style,
+                     android::FontStyle* font,
+                     android::MinikinPaint* paint) {
+  *font = android::FontStyle(GetWeight(style), GetItalic(style));
+  paint->size = style.font_size;
+  paint->letterSpacing = style.letter_spacing;
+  // TODO(abarth): font_family, word_spacing.
+}
+
 } // namespace
 
 Paragraph::Paragraph() = default;
 
 Paragraph::~Paragraph() = default;
 
-void Paragraph::Layout(const ParagraphConstraints& constraints) {
-  android::LineBreaker breaker;
-  breaker.setLocale(icu::Locale(), nullptr);
-  breaker.resize(text_.size());
-  memcpy(breaker.buffer(), text_.data(), text_.size() * sizeof(text_[0]));
-  breaker.setText();
-  breaker.setLineWidths(0.0f, 0, constraints.width());
+void Paragraph::SetText(std::vector<uint16_t> text, StyledRuns runs) {
+  text_ = std::move(text);
+  runs_ = std::move(runs);
 
+  breaker_.setLocale(icu::Locale(), nullptr);
+  breaker_.resize(text_.size());
+  memcpy(breaker_.buffer(), text_.data(), text_.size() * sizeof(text_[0]));
+  breaker_.setText();
+}
+
+void Paragraph::AddRunsToLineBreaker() {
   android::FontCollection* collection = GetFontCollection();
+  android::FontStyle font;
+  android::MinikinPaint paint;
+  for (size_t i = 0; i < runs_.size(); ++i) {
+    auto run = runs_.GetRun(i);
+    GetFontAndPaint(run.style, &font, &paint);
+    breaker_.addStyleRun(&paint, collection, font, run.start, run.end, false);
+  }
+}
 
-  android::FontStyle fontStyle;
-  android::MinikinPaint minikinPaint;
-  minikinPaint.size = 32.0f;
+void Paragraph::Layout(const ParagraphConstraints& constraints) {
+  breaker_.setLineWidths(0.0f, 0, constraints.width());
+  AddRunsToLineBreaker();
 
-  breaker.addStyleRun(&minikinPaint, collection, fontStyle, 0, text_.size(), false);
-
-  size_t count = breaker.computeBreaks();
-  const int* breaks = breaker.getBreaks();
+  size_t count = breaker_.computeBreaks();
+  const int* breaks = breaker_.getBreaks();
 
   SkTextBlobBuilder builder;
 
@@ -116,14 +166,14 @@ void Paragraph::Layout(const ParagraphConstraints& constraints) {
   paint.setTextEncoding(SkPaint::kGlyphID_TextEncoding);
 
   android::Layout layout;
-  layout.setFontCollection(collection);
+  layout.setFontCollection(GetFontCollection());
   SkScalar y = 0.0f;
   size_t line_start = 0;
   for (size_t i = 0; i < count; ++i) {
-    int bidiFlags = 0;
+    // int bidiFlags = 0;
     const size_t line_end = breaks[i];
-    layout.doLayout(text_.data(), line_start, line_end - line_start,
-                    text_.size(), bidiFlags, fontStyle, minikinPaint);
+    // layout.doLayout(text_.data(), line_start, line_end - line_start,
+    //                 text_.size(), bidiFlags, font_style, minikin_paint);
 
     const size_t glyph_count = layout.nGlyphs();
     size_t run_start = 0;
@@ -149,13 +199,17 @@ void Paragraph::Layout(const ParagraphConstraints& constraints) {
     y += 32.0f;
   }
 
-  blob_ = builder.make();
+  records_.push_back(
+      PaintRecord(SK_ColorWHITE, SkPoint::Make(0.0f, 0.0f), builder.make()));
 }
 
 void Paragraph::Paint(SkCanvas* canvas, double x, double y) {
   SkPaint paint;
-  paint.setARGB(255, 0, 0, 128);
-  canvas->drawTextBlob(blob_.get(), x, y, paint);
+  for (const auto& record : records_) {
+    paint.setColor(record.color());
+    const SkPoint& offset = record.offset();
+    canvas->drawTextBlob(record.text(), x + offset.x(), y + offset.y(), paint);
+  }
 }
 
 }  // namespace txt

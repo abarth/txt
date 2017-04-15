@@ -36,7 +36,11 @@ int runTest() {
 
   ParagraphStyle paragraph_style;
   ParagraphBuilder builder(paragraph_style);
+  TextStyle style;
+  style.font_size = 32.0;
+  builder.PushStyle(style);
   builder.AddText(u16_text);
+  builder.Pop();
   auto paragraph = builder.Build();
 
   int width = 800;

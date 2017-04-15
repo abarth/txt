@@ -19,6 +19,9 @@
 
 #include <vector>
 
+#include <minikin/LineBreaker.h>
+
+#include "lib/txt/src/paint_record.h"
 #include "lib/txt/src/paragraph_constraints.h"
 #include "lib/txt/src/styled_runs.h"
 #include "third_party/skia/include/core/SkTextBlob.h"
@@ -38,10 +41,14 @@ class Paragraph {
  private:
   friend class ParagraphBuilder;
 
+  void SetText(std::vector<uint16_t> text, StyledRuns runs);
+  void AddRunsToLineBreaker();
+
   std::vector<uint16_t> text_;
   StyledRuns runs_;
 
-  sk_sp<SkTextBlob> blob_;
+  android::LineBreaker breaker_;
+  std::vector<PaintRecord> records_;
 };
 
 }  // namespace txt
