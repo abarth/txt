@@ -16,10 +16,13 @@
 
 #include "lib/txt/src/paragraph.h"
 
+#include <algorithm>
 #include <vector>
 
 #include <minikin/Layout.h>
 #include <minikin/LineBreaker.h>
+
+#include "lib/ftl/logging.h"
 
 #include "lib/txt/src/font_skia.h"
 #include "third_party/skia/include/core/SkCanvas.h"
@@ -73,14 +76,14 @@ const sk_sp<SkTypeface>& GetTypefaceForGlyph(const android::Layout& layout, size
   return font->GetSkTypeface();
 }
 
-size_t GetRunLength(const android::Layout& layout, size_t start) {
+size_t GetBlobLength(const android::Layout& layout, size_t blob_start) {
   const size_t glyph_count = layout.nGlyphs();
-  const sk_sp<SkTypeface>& typeface = GetTypefaceForGlyph(layout, start);
-  for (size_t end = start + 1; end < glyph_count; ++end) {
-    if (GetTypefaceForGlyph(layout, end).get() != typeface.get())
-      return end - start;
+  const sk_sp<SkTypeface>& typeface = GetTypefaceForGlyph(layout, blob_start);
+  for (size_t blob_end = blob_start + 1; blob_end < glyph_count; ++blob_end) {
+    if (GetTypefaceForGlyph(layout, blob_end).get() != typeface.get())
+      return blob_end - blob_start;
   }
-  return glyph_count - start;
+  return glyph_count - blob_start;
 }
 
 int GetWeight(const TextStyle& style) {
@@ -115,13 +118,17 @@ bool GetItalic(const TextStyle& style) {
   }
 }
 
-void GetFontAndPaint(const TextStyle& style,
-                     android::FontStyle* font,
-                     android::MinikinPaint* paint) {
+void GetFontAndMinikinPaint(const TextStyle& style,
+                            android::FontStyle* font,
+                            android::MinikinPaint* paint) {
   *font = android::FontStyle(GetWeight(style), GetItalic(style));
   paint->size = style.font_size;
   paint->letterSpacing = style.letter_spacing;
   // TODO(abarth): font_family, word_spacing.
+}
+
+void GetPaint(const TextStyle& style, SkPaint* paint) {
+  paint->setTextSize(style.font_size);
 }
 
 } // namespace
@@ -146,7 +153,7 @@ void Paragraph::AddRunsToLineBreaker() {
   android::MinikinPaint paint;
   for (size_t i = 0; i < runs_.size(); ++i) {
     auto run = runs_.GetRun(i);
-    GetFontAndPaint(run.style, &font, &paint);
+    GetFontAndMinikinPaint(run.style, &font, &paint);
     breaker_.addStyleRun(&paint, collection, font, run.start, run.end, false);
   }
 }
@@ -154,53 +161,74 @@ void Paragraph::AddRunsToLineBreaker() {
 void Paragraph::Layout(const ParagraphConstraints& constraints) {
   breaker_.setLineWidths(0.0f, 0, constraints.width());
   AddRunsToLineBreaker();
-
-  size_t count = breaker_.computeBreaks();
   const int* breaks = breaker_.getBreaks();
-
-  SkTextBlobBuilder builder;
 
   SkPaint paint;
   paint.setAntiAlias(true);
-  paint.setTextSize(32.0f);
   paint.setTextEncoding(SkPaint::kGlyphID_TextEncoding);
+
+  android::FontStyle font;
+  android::MinikinPaint minikin_paint;
+
+  SkTextBlobBuilder builder;
 
   android::Layout layout;
   layout.setFontCollection(GetFontCollection());
+  SkScalar x = 0.0f;
   SkScalar y = 0.0f;
-  size_t line_start = 0;
-  for (size_t i = 0; i < count; ++i) {
-    // int bidiFlags = 0;
-    const size_t line_end = breaks[i];
-    // layout.doLayout(text_.data(), line_start, line_end - line_start,
-    //                 text_.size(), bidiFlags, font_style, minikin_paint);
+  size_t break_index = 0;
+  for (size_t run_index = 0; run_index < runs_.size(); ++run_index) {
+    auto run = runs_.GetRun(run_index);
+    GetFontAndMinikinPaint(run.style, &font, &minikin_paint);
+    GetPaint(run.style, &paint);
 
-    const size_t glyph_count = layout.nGlyphs();
-    size_t run_start = 0;
-    while (run_start < glyph_count) {
-      const size_t run_length = GetRunLength(layout, run_start);
-      // TODO(abarth): Precompute when we can use allocRunPosH.
-      paint.setTypeface(GetTypefaceForGlyph(layout, run_start));
-      auto buffer = builder.allocRunPos(paint, run_length);
+    size_t layout_start = run.start;
+    while (layout_start < run.end) {
+      const size_t next_break = breaks[break_index];
+      const size_t layout_end = std::min(run.end, next_break);
 
-      for (size_t run_index = 0; run_index < run_length; ++run_index) {
-        const size_t glyph_index = run_start + run_index;
-        buffer.glyphs[run_index] = layout.getGlyphId(glyph_index);
-        const size_t pos_index = 2 * run_index;
-        buffer.pos[pos_index] = layout.getX(glyph_index);
-        buffer.pos[pos_index + 1] = layout.getY(glyph_index) + y;
+      int bidiFlags = 0;
+      layout.doLayout(text_.data(), layout_start, layout_end - layout_start,
+                      text_.size(), bidiFlags, font, minikin_paint);
+
+      const size_t glyph_count = layout.nGlyphs();
+      size_t blob_start = 0;
+      while (blob_start < glyph_count) {
+        const size_t blob_length = GetBlobLength(layout, blob_start);
+        // TODO(abarth): Precompute when we can use allocRunPosH.
+        paint.setTypeface(GetTypefaceForGlyph(layout, blob_start));
+
+        auto buffer = builder.allocRunPos(paint, blob_length);
+
+        for (size_t blob_index = 0; blob_index < blob_length; ++blob_index) {
+          const size_t glyph_index = blob_start + blob_index;
+          buffer.glyphs[blob_index] = layout.getGlyphId(glyph_index);
+          const size_t pos_index = 2 * blob_index;
+          buffer.pos[pos_index] = layout.getX(glyph_index);
+          buffer.pos[pos_index + 1] = layout.getY(glyph_index);
+        }
+        blob_start += blob_length;
       }
 
-      run_start += run_length;
+      // TODO(abarth): We could keep the same SkTextBlobBuilder as long as the
+      // color stayed the same.
+      records_.push_back(
+        PaintRecord(run.style.color, SkPoint::Make(x, y), builder.make()));
+
+      if (layout_end == next_break) {
+        x = 0.0f;
+        // TODO(abarth): Use the line height, which is something like the max
+        // font_size for runs in this line times the paragraph's line height.
+        y += run.style.font_size;
+        break_index += 1;
+      } else {
+        x += layout.getAdvance();
+      }
+
+      layout.reset();
+      layout_start = layout_end;
     }
-
-    layout.reset();
-    line_start = line_end;
-    y += 32.0f;
   }
-
-  records_.push_back(
-      PaintRecord(SK_ColorWHITE, SkPoint::Make(0.0f, 0.0f), builder.make()));
 }
 
 void Paragraph::Paint(SkCanvas* canvas, double x, double y) {

@@ -37,8 +37,14 @@ int runTest() {
   ParagraphStyle paragraph_style;
   ParagraphBuilder builder(paragraph_style);
   TextStyle style;
+  style.color = SK_ColorBLUE;
   style.font_size = 32.0;
   builder.PushStyle(style);
+  builder.AddText(u16_text);
+  style.color = SK_ColorYELLOW;
+  builder.PushStyle(style);
+  builder.AddText(u16_text);
+  builder.Pop();
   builder.AddText(u16_text);
   builder.Pop();
   auto paragraph = builder.Build();
@@ -51,7 +57,7 @@ int runTest() {
   SkBitmap bitmap;
   bitmap.allocN32Pixels(width, height);
   SkCanvas canvas(bitmap);
-  paragraph->Paint(&canvas, 10.0, 300.0);
+  paragraph->Paint(&canvas, 10.0, 200.0);
 
   SkFILEWStream file("foo.png");
   SkEncodeImage(&file, bitmap, SkEncodedImageFormat::kPNG, 100);
