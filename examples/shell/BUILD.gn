@@ -20,11 +20,12 @@ executable("shell") {
   ]
 
   deps = [
-    "//lib/txt/src",
+    "//dart/runtime:libdart_jit",
     "//flutter/fml",
-    "//third_party/minikin/libs/minikin",
-    "//third_party/skia",
+    "//lib/txt/src",
     "//third_party/freetype2",
     "//third_party/icu:icuuc",
+    "//third_party/minikin/libs/minikin",
+    "//third_party/skia",
   ]
 }

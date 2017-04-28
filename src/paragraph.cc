@@ -17,6 +17,8 @@
 #include "lib/txt/src/paragraph.h"
 
 #include <algorithm>
+#include <limits>
+#include <utility>
 #include <vector>
 
 #include <minikin/Layout.h>
@@ -24,6 +26,7 @@
 
 #include "lib/ftl/logging.h"
 
+#include "lib/txt/src/font_collection.h"
 #include "lib/txt/src/font_skia.h"
 #include "third_party/skia/include/core/SkCanvas.h"
 #include "third_party/skia/include/core/SkPaint.h"
@@ -33,45 +36,8 @@
 namespace txt {
 namespace {
 
-android::FontCollection* MakeFontCollection() {
-    std::vector<android::FontFamily*>typefaces;
-    const char *fns[] = {
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-Italic.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-BoldItalic.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-Light.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-Thin.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-Bold.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-ThinItalic.ttf",
-        "/Users/abarth/git/flutter/flutter/bin/cache/artifacts/material_fonts/Roboto-LightItalic.ttf",
-    };
-
-    android::FontFamily *family = new android::FontFamily();
-    for (size_t i = 0; i < sizeof(fns)/sizeof(fns[0]); i++) {
-        const char *fn = fns[i];
-        android::MinikinFont *font = new FontSkia(SkTypeface::MakeFromFile(fn));
-        family->addFont(font);
-    }
-    typefaces.push_back(family);
-
-    family = new android::FontFamily();
-    const char *fn = "/Users/abarth/git/flutter/engine/src/DroidSansDevanagari-Regular.ttf";
-    android::MinikinFont *font = new FontSkia(SkTypeface::MakeFromFile(fn));
-    family->addFont(font);
-    typefaces.push_back(family);
-
-    return new android::FontCollection(typefaces);
-}
-
-android::FontCollection* g_font_collection = nullptr;
-
-android::FontCollection* GetFontCollection() {
-  if (!g_font_collection)
-    g_font_collection = MakeFontCollection();
-  return g_font_collection;
-}
-
-const sk_sp<SkTypeface>& GetTypefaceForGlyph(const android::Layout& layout, size_t index) {
+const sk_sp<SkTypeface>& GetTypefaceForGlyph(const android::Layout& layout,
+                                             size_t index) {
   FontSkia* font = static_cast<FontSkia*>(layout.getFont(index));
   return font->GetSkTypeface();
 }
@@ -131,7 +97,7 @@ void GetPaint(const TextStyle& style, SkPaint* paint) {
   paint->setTextSize(style.font_size);
 }
 
-} // namespace
+}  // namespace
 
 Paragraph::Paragraph() = default;
 
@@ -148,19 +114,22 @@ void Paragraph::SetText(std::vector<uint16_t> text, StyledRuns runs) {
 }
 
 void Paragraph::AddRunsToLineBreaker() {
-  android::FontCollection* collection = GetFontCollection();
+  auto collection = FontCollection::GetDefaultFontCollection()
+                        .GetAndroidFontCollectionForFamily("");
   android::FontStyle font;
   android::MinikinPaint paint;
   for (size_t i = 0; i < runs_.size(); ++i) {
     auto run = runs_.GetRun(i);
     GetFontAndMinikinPaint(run.style, &font, &paint);
-    breaker_.addStyleRun(&paint, collection, font, run.start, run.end, false);
+    breaker_.addStyleRun(&paint, collection.get(), font, run.start, run.end,
+                         false);
   }
 }
 
 void Paragraph::Layout(const ParagraphConstraints& constraints) {
   breaker_.setLineWidths(0.0f, 0, constraints.width());
   AddRunsToLineBreaker();
+  size_t breaks_count = breaker_.computeBreaks();
   const int* breaks = breaker_.getBreaks();
 
   SkPaint paint;
@@ -171,9 +140,10 @@ void Paragraph::Layout(const ParagraphConstraints& constraints) {
   android::MinikinPaint minikin_paint;
 
   SkTextBlobBuilder builder;
-
+  auto collection = FontCollection::GetDefaultFontCollection()
+                        .GetAndroidFontCollectionForFamily("");
   android::Layout layout;
-  layout.setFontCollection(GetFontCollection());
+  layout.setFontCollection(collection.get());
   SkScalar x = 0.0f;
   SkScalar y = 0.0f;
   size_t break_index = 0;
@@ -184,7 +154,9 @@ void Paragraph::Layout(const ParagraphConstraints& constraints) {
 
     size_t layout_start = run.start;
     while (layout_start < run.end) {
-      const size_t next_break = breaks[break_index];
+      const size_t next_break = (break_index > breaks_count - 1)
+                                    ? std::numeric_limits<size_t>::max()
+                                    : breaks[break_index];
       const size_t layout_end = std::min(run.end, next_break);
 
       int bidiFlags = 0;
@@ -213,7 +185,7 @@ void Paragraph::Layout(const ParagraphConstraints& constraints) {
       // TODO(abarth): We could keep the same SkTextBlobBuilder as long as the
       // color stayed the same.
       records_.push_back(
-        PaintRecord(run.style.color, SkPoint::Make(x, y), builder.make()));
+          PaintRecord(run.style.color, SkPoint::Make(x, y), builder.make()));
 
       if (layout_end == next_break) {
         x = 0.0f;

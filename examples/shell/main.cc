@@ -32,7 +32,8 @@ int runTest() {
       "\xe0\xa4\xa8\xe0\xa4\xae\xe0\xa4\xb8\xe0\xa5\x8d\xe0\xa4\xa4\xe0\xa5"
       "\x87";
   icu::UnicodeString icu_text = icu::UnicodeString::fromUTF8(utf8_text);
-  std::u16string u16_text(icu_text.getBuffer(), icu_text.getBuffer() + icu_text.length());
+  std::u16string u16_text(icu_text.getBuffer(),
+                          icu_text.getBuffer() + icu_text.length());
 
   ParagraphStyle paragraph_style;
   ParagraphBuilder builder(paragraph_style);
@@ -60,14 +61,15 @@ int runTest() {
   paragraph->Paint(&canvas, 10.0, 200.0);
 
   SkFILEWStream file("foo.png");
-  SkEncodeImage(&file, bitmap, SkEncodedImageFormat::kPNG, 100);
-  return 0;
+
+  return SkEncodeImage(&file, bitmap, SkEncodedImageFormat::kPNG, 100)
+             ? EXIT_SUCCESS
+             : EXIT_FAILURE;
 }
 
 }  // namespace txt
 
 int main(int argc, const char** argv) {
-  fml::icu::InitializeICU(
-      "/Users/abarth/git/flutter/engine/src/out/host_debug_unopt/icudtl.dat");
+  fml::icu::InitializeICU();
   return txt::runTest();
 }
