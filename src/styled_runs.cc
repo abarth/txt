@@ -65,5 +65,4 @@ StyledRuns::Run StyledRuns::GetRun(size_t index) const {
   return Run{styles_[run.style_index], run.start, run.end};
 }
 
-
 }  // namespace txt

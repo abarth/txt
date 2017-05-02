@@ -20,19 +20,22 @@
 #include <memory>
 #include <string>
 
+#include "lib/ftl/macros.h"
 #include "lib/txt/src/paragraph.h"
 #include "lib/txt/src/paragraph_style.h"
-#include "lib/txt/src/text_style.h"
 #include "lib/txt/src/styled_runs.h"
+#include "lib/txt/src/text_style.h"
 
 namespace txt {
 
 class ParagraphBuilder {
  public:
   explicit ParagraphBuilder(ParagraphStyle style);
+
   ~ParagraphBuilder();
 
   void PushStyle(const TextStyle& style);
+
   void Pop();
 
   void AddText(const std::u16string& text);
@@ -43,6 +46,8 @@ class ParagraphBuilder {
   std::vector<uint16_t> text_;
   std::vector<size_t> style_stack_;
   StyledRuns runs_;
+
+  FTL_DISALLOW_COPY_AND_ASSIGN(ParagraphBuilder);
 };
 
 }  // namespace txt

@@ -25,26 +25,32 @@ namespace txt {
 
 class StyledRuns {
  public:
-  StyledRuns();
-  ~StyledRuns();
-
-  StyledRuns(const StyledRuns& other) = delete;
-  StyledRuns(StyledRuns&& other);
-
-  const StyledRuns& operator=(StyledRuns&& other);
-  void swap(StyledRuns& other);
-
-  size_t AddStyle(const TextStyle& style);
-  void StartRun(size_t style_index, size_t start);
-  void EndRunIfNeeded(size_t end);
-
   struct Run {
     const TextStyle& style;
     size_t start;
     size_t end;
   };
 
+  StyledRuns();
+
+  ~StyledRuns();
+
+  StyledRuns(const StyledRuns& other) = delete;
+
+  StyledRuns(StyledRuns&& other);
+
+  const StyledRuns& operator=(StyledRuns&& other);
+
+  void swap(StyledRuns& other);
+
+  size_t AddStyle(const TextStyle& style);
+
+  void StartRun(size_t style_index, size_t start);
+
+  void EndRunIfNeeded(size_t end);
+
   size_t size() const { return runs_.size(); }
+
   Run GetRun(size_t index) const;
 
  private:

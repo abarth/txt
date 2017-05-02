@@ -14,25 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef LIB_TXT_SRC_PARAGRAPH_CONSTRAINTS_H_
-#define LIB_TXT_SRC_PARAGRAPH_CONSTRAINTS_H_
-
-#include "lib/ftl/macros.h"
+#include "lib/txt/src/minikin_ref_count.h"
 
 namespace txt {
 
-class ParagraphConstraints {
- public:
-  explicit ParagraphConstraints(double width);
-
-  double width() const { return width_; }
-
- private:
-  double width_;
-
-  FTL_DISALLOW_COPY_AND_ASSIGN(ParagraphConstraints);
-};
+//
 
 }  // namespace txt
-
-#endif  // LIB_TXT_SRC_PARAGRAPH_CONSTRAINTS_H_

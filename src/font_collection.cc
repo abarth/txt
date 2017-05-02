@@ -35,7 +35,7 @@ FontCollection::FontCollection() = default;
 
 FontCollection::~FontCollection() = default;
 
-android::MinikinAutoUnref<android::FontCollection>
+RefPtr<android::FontCollection>
 FontCollection::GetAndroidFontCollectionForFamily(const std::string& family) {
   // Get the Skia font manager.
   auto skia_font_manager = SkFontMgr::RefDefault();
@@ -69,10 +69,7 @@ FontCollection::GetAndroidFontCollectionForFamily(const std::string& family) {
   };
 
   // Return the font collection.
-  android::MinikinAutoUnref<android::FontCollection> collection(
-      new android::FontCollection(minikin_families));
-
-  return collection;
+  return RefPtr<android::FontCollection>::Make(minikin_families);
 }
 
 }  // namespace txt

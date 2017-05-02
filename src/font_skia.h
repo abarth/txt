@@ -14,32 +14,36 @@
  * limitations under the License.
  */
 
-#include <SkTypeface.h>
 #include <SkPaint.h>
-
+#include <SkTypeface.h>
 #include <minikin/MinikinFont.h>
+#include "lib/ftl/macros.h"
 
 namespace txt {
 
 class FontSkia : public android::MinikinFont {
-public:
-    explicit FontSkia(sk_sp<SkTypeface> typeface);
+ public:
+  explicit FontSkia(sk_sp<SkTypeface> typeface);
 
-    ~FontSkia();
+  ~FontSkia();
 
-    float GetHorizontalAdvance(uint32_t glyph_id,
-        const android::MinikinPaint &paint) const;
+  float GetHorizontalAdvance(uint32_t glyph_id,
+                             const android::MinikinPaint& paint) const;
 
-    void GetBounds(android::MinikinRect* bounds, uint32_t glyph_id,
-        const android::MinikinPaint& paint) const;
+  void GetBounds(android::MinikinRect* bounds,
+                 uint32_t glyph_id,
+                 const android::MinikinPaint& paint) const;
 
-    const void* GetTable(uint32_t tag, size_t* size, android::MinikinDestroyFunc* destroy);
+  const void* GetTable(uint32_t tag,
+                       size_t* size,
+                       android::MinikinDestroyFunc* destroy);
 
-    const sk_sp<SkTypeface>& GetSkTypeface();
+  const sk_sp<SkTypeface>& GetSkTypeface();
 
-private:
-    sk_sp<SkTypeface> mTypeface;
+ private:
+  sk_sp<SkTypeface> mTypeface;
 
+  FTL_DISALLOW_COPY_AND_ASSIGN(FontSkia);
 };
 
 }  // namespace txt

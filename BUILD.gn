@@ -20,6 +20,8 @@ source_set("txt") {
     "src/font_skia.h",
     "src/font_style.h",
     "src/font_weight.h",
+    "src/minikin_ref_count.cc",
+    "src/minikin_ref_count.h",
     "src/paint_record.cc",
     "src/paint_record.h",
     "src/paragraph.cc",

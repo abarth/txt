@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "lib/ftl/macros.h"
+#include "lib/txt/src/minikin_ref_count.h"
 #include "third_party/minikin/include/minikin/FontCollection.h"
 #include "third_party/minikin/include/minikin/FontFamily.h"
 
@@ -35,8 +36,8 @@ class FontCollection {
 
   ~FontCollection();
 
-  android::MinikinAutoUnref<android::FontCollection>
-  GetAndroidFontCollectionForFamily(const std::string& family);
+  RefPtr<android::FontCollection> GetAndroidFontCollectionForFamily(
+      const std::string& family);
 
  private:
   // TODO(chinmaygarde): Caches go here.

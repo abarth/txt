@@ -21,6 +21,7 @@
 
 #include <minikin/LineBreaker.h>
 
+#include "lib/ftl/macros.h"
 #include "lib/txt/src/paint_record.h"
 #include "lib/txt/src/paragraph_constraints.h"
 #include "lib/txt/src/styled_runs.h"
@@ -33,22 +34,26 @@ namespace txt {
 class Paragraph {
  public:
   Paragraph();
+
   ~Paragraph();
 
   void Layout(const ParagraphConstraints& constraints);
+
   void Paint(SkCanvas* canvas, double x, double y);
 
  private:
   friend class ParagraphBuilder;
 
-  void SetText(std::vector<uint16_t> text, StyledRuns runs);
-  void AddRunsToLineBreaker();
-
   std::vector<uint16_t> text_;
   StyledRuns runs_;
-
   android::LineBreaker breaker_;
   std::vector<PaintRecord> records_;
+
+  void SetText(std::vector<uint16_t> text, StyledRuns runs);
+
+  void AddRunsToLineBreaker();
+
+  FTL_DISALLOW_COPY_AND_ASSIGN(Paragraph);
 };
 
 }  // namespace txt

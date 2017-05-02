@@ -17,6 +17,7 @@
 #ifndef LIB_TXT_SRC_PAINT_RECORD_H_
 #define LIB_TXT_SRC_PAINT_RECORD_H_
 
+#include "lib/ftl/macros.h"
 #include "third_party/skia/include/core/SkTextBlob.h"
 
 namespace txt {
@@ -24,16 +25,21 @@ namespace txt {
 class PaintRecord {
  public:
   PaintRecord();
+
   ~PaintRecord();
 
   PaintRecord(SkColor color, SkPoint offset, sk_sp<SkTextBlob> text);
+
   PaintRecord(const PaintRecord& other) = delete;
+
   PaintRecord(PaintRecord&& other);
 
   PaintRecord& operator=(PaintRecord&& other);
 
   SkColor color() const { return color_; }
+
   SkPoint offset() const { return offset_; }
+
   SkTextBlob* text() const { return text_.get(); }
 
  private:
