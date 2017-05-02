@@ -14,35 +14,39 @@
  * limitations under the License.
  */
 
-#ifndef LIB_TXT_SRC_FONT_COLLECTION_H_
-#define LIB_TXT_SRC_FONT_COLLECTION_H_
-
 #include <memory>
 #include <string>
-#include <vector>
 
+#include "gtest/gtest.h"
 #include "lib/ftl/macros.h"
-#include "third_party/minikin/include/minikin/FontCollection.h"
-#include "third_party/minikin/include/minikin/FontFamily.h"
+#include "third_party/skia/include/core/SkBitmap.h"
+#include "third_party/skia/include/core/SkCanvas.h"
 
-namespace txt {
-
-class FontCollection {
+class RenderTest : public ::testing::Test {
  public:
-  static FontCollection& GetDefaultFontCollection();
+  RenderTest();
 
-  FontCollection();
+  ~RenderTest();
 
-  ~FontCollection();
+  SkCanvas* GetCanvas();
 
-  android::MinikinAutoUnref<android::FontCollection>
-  GetAndroidFontCollectionForFamily(const std::string& family);
+  bool Snapshot();
+
+  size_t GetTestCanvasWidth() const;
+
+  size_t GetTestCanvasHeight() const;
+
+ protected:
+  void SetUp() override;
+
+  void TearDown() override;
 
  private:
-  // TODO(chinmaygarde): Caches go here.
-  FTL_DISALLOW_COPY_AND_ASSIGN(FontCollection);
+  size_t snapshots_;
+  std::unique_ptr<SkBitmap> bitmap_;
+  std::unique_ptr<SkCanvas> canvas_;
+
+  std::string GetNextSnapshotName();
+
+  FTL_DISALLOW_COPY_AND_ASSIGN(RenderTest);
 };
-
-}  // namespace txt
-
-#endif  // LIB_TXT_SRC_FONT_COLLECTION_H_
